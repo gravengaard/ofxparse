@@ -296,7 +296,7 @@ class Position(object):
         self.security = ''
         self.units = decimal.Decimal(0)
         self.unit_price = decimal.Decimal(0)
-
+        self.market_value = decimal.Decimal(0)
 
 class Institution(object):
     def __init__(self):
@@ -501,6 +501,9 @@ class OfxParser(object):
                 position.date = cls_.parseOfxDateTime(tag.contents[0].strip())
             except ValueError:
                 raise
+        tag = ofx.find('mktval')
+        if hasattr(tag, 'contents'):
+            position.market_value = decimal.Decimal(tag.contents[0].strip())
         return position
 
     @classmethod
