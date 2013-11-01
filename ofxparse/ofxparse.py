@@ -272,10 +272,10 @@ class Transaction(object):
 
 
 class InvestmentTransaction(object):
-    (Unknown, BuyMF, SellMF, Reinvest, BuyStock, SellStock) = [x for x in range(-1, 5)]
+    (Unknown, BuyMF, SellMF, Reinvest, BuyStock, SellStock, BuyOption, SellOption) = [x for x in range(-1, 7)]
     def __init__(self, type):
         try:
-            self.type = ['buymf', 'sellmf', 'reinvest', 'buystock', 'sellstock'].index(type.lower())
+            self.type = ['buymf', 'sellmf', 'reinvest', 'buystock', 'sellstock', 'buyopt', 'sellopt'].index(type.lower())
         except ValueError:
             self.type = InvestmentTransaction.Unknown
         self.tradeDate = None
@@ -283,6 +283,9 @@ class InvestmentTransaction(object):
         self.security = ''
         self.units = decimal.Decimal(0)
         self.unit_price = decimal.Decimal(0)
+        self.commission = decimal.Decimal(0)
+        self.fees = decimal.Decimal(0)
+        self.total = decimal.Decimal(0)
 
     def __repr__(self):
         return "<InvestmentTransaction type=" + str(self.type) + ", units=" + str(self.units) + ">"
@@ -532,6 +535,15 @@ class OfxParser(object):
         tag = ofx.find('unitprice')
         if (hasattr(tag, 'contents')):
             transaction.unit_price = decimal.Decimal(tag.contents[0].strip())
+        tag = ofx.find('commission')
+        if (hasattr(tag, 'contents')):
+            transaction.commission = decimal.Decimal(tag.contents[0].strip())
+        tag = ofx.find('fees')
+        if (hasattr(tag, 'contents')):
+            transaction.fees = decimal.Decimal(tag.contents[0].strip())
+        tag = ofx.find('total')
+        if (hasattr(tag, 'contents')):
+            transaction.total = decimal.Decimal(tag.contents[0].strip())
         return transaction
 
     @classmethod
