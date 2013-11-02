@@ -272,12 +272,14 @@ class Transaction(object):
 
 
 class InvestmentTransaction(object):
-    (Unknown, BuyMF, SellMF, Reinvest, BuyStock, SellStock, BuyOption, SellOption) = [x for x in range(-1, 7)]
+    (Unknown, BuyMF, SellMF, Reinvest, BuyStock, SellStock, BuyOption, SellOption, Income) = [x for x in range(-1, 8)]
     def __init__(self, type):
         try:
-            self.type = ['buymf', 'sellmf', 'reinvest', 'buystock', 'sellstock', 'buyopt', 'sellopt'].index(type.lower())
+            self.type = ['buymf', 'sellmf', 'reinvest', 'buystock', 'sellstock', 'buyopt', 'sellopt', 'income'].index(type.lower())
         except ValueError:
             self.type = InvestmentTransaction.Unknown
+
+        self.sub_type = ''
         self.tradeDate = None
         self.settleDate = None
         self.security = ''
@@ -547,6 +549,21 @@ class OfxParser(object):
         tag = ofx.find('total')
         if (hasattr(tag, 'contents')):
             transaction.total = decimal.Decimal(tag.contents[0].strip())
+
+        tag = None
+        if transaction.type == transaction.BuyOption:
+            tag = ofx.find('optbuytype')
+        elif transaction.type == transaction.BuyStock:
+            tag = ofx.find('buytype')
+        elif transaction.type == transaction.SellOption:
+            tag = ofx.find('optselltype')
+        elif transaction.type == transaction.SellStock:
+            tag = ofx.find('selltype')
+        elif transaction.type == transaction.Income:
+            tag = ofx.find('incometype')
+        if hasattr(tag, 'contents'):
+            transaction.sub_type = tag.contents[0].strip()
+
         return transaction
 
     @classmethod
@@ -601,7 +618,7 @@ class OfxParser(object):
                 )
 
         for transaction_type in ['buymf', 'sellmf', 'reinvest', 'buystock',
-                                 'sellstock', 'buyopt', 'sellopt']:
+                                 'sellstock', 'buyopt', 'sellopt', 'income']:
             try:
                 for investment_ofx in invstmtrs_ofx.findAll(transaction_type):
                     statement.transactions.append(
@@ -865,7 +882,7 @@ class OfxParser(object):
             except IndexError:
                 raise OfxParserException(six.u("Empty transaction Merchant Category Code (MCC)"))
             except AttributeError:
-                if cls._fail_fast:
+                if cls_.fail_fast:
                     raise
 
         checknum_tag = txn_ofx.find('checknum')
