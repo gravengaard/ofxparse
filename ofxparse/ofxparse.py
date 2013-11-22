@@ -272,10 +272,12 @@ class Transaction(object):
 
 
 class InvestmentTransaction(object):
-    (Unknown, BuyMF, SellMF, Reinvest, BuyStock, SellStock, BuyOption, SellOption, Income) = [x for x in range(-1, 8)]
+    (Unknown, BuyMF, SellMF, Reinvest, BuyStock, SellStock, 
+         BuyOption, SellOption, Income, Transfer) = [x for x in range(-1, 9)]
     def __init__(self, type):
         try:
-            self.type = ['buymf', 'sellmf', 'reinvest', 'buystock', 'sellstock', 'buyopt', 'sellopt', 'income'].index(type.lower())
+            self.type = ['buymf', 'sellmf', 'reinvest', 'buystock', 'sellstock',
+                         'buyopt', 'sellopt', 'income', 'transfer'].index(type.lower())
         except ValueError:
             self.type = InvestmentTransaction.Unknown
 
@@ -561,8 +563,17 @@ class OfxParser(object):
             tag = ofx.find('selltype')
         elif transaction.type == transaction.Income:
             tag = ofx.find('incometype')
+        elif transaction.type == transaction.Transfer:
+            tag = ofx.find('tferaction')
         if hasattr(tag, 'contents'):
             transaction.sub_type = tag.contents[0].strip()
+
+        # more coding for OUT transfers, because qty is always negative even when
+        # transfering out a short position            
+        if transaction.type == transaction.Transfer:
+            tag = ofx.find('postype')
+            if hasattr(tag, 'contents'):
+                transaction.sub_type += ",%s" % tag.contents[0].strip()
 
         return transaction
 
@@ -618,7 +629,8 @@ class OfxParser(object):
                 )
 
         for transaction_type in ['buymf', 'sellmf', 'reinvest', 'buystock',
-                                 'sellstock', 'buyopt', 'sellopt', 'income']:
+                                 'sellstock', 'buyopt', 'sellopt', 'income',
+                                 'transfer']:
             try:
                 for investment_ofx in invstmtrs_ofx.findAll(transaction_type):
                     statement.transactions.append(
