@@ -232,7 +232,7 @@ class TestParse(TestCase):
         self.assertEquals('00', ofx.account.branch_id)
         self.assertEquals('CHECKING', ofx.account.account_type)
         self.assertEquals(Decimal('382.34'), ofx.account.statement.balance)
-        self.assertEquals(datetime(2009, 5, 23, 12, 20, 17), 
+        self.assertEquals(datetime(2009, 5, 23, 12, 20, 17),
                           ofx.account.statement.balance_date)
         # Todo: support values in decimal or int form.
         # self.assertEquals('15',
@@ -477,6 +477,32 @@ class TestInvestmentAccount(TestCase):
     def testThatParseCanCreateAnInvestmentAccount(self):
         OfxParser.parse(six.BytesIO(six.b(self.sample)))
         # Success!
+
+
+class TestApexOnlineStatement(TestCase):
+    def testForOptBuySell(self):
+        import glob
+        one_buy = False
+        one_sell = False
+        for f_name in glob.glob("C:/Users/Eric/SkyDrive/OFX/*.OFX"):
+            ofx = OfxParser.parse(open(f_name))
+
+            self.assertTrue(hasattr(ofx, 'account'))
+            self.assertTrue(hasattr(ofx.account, 'statement'))
+            self.assertTrue(hasattr(ofx.account.statement, 'transactions'))
+
+            for t in ofx.account.statement.transactions:
+                self.assertNotEqual(t.type, t.Unknown, "No transactions should be Unknown")
+                if t.type == t.BuyOption:
+                    one_buy = True
+                    self.assertIn(t.sub_type, ['BUYTOOPEN', 'BUYTOCLOSE'])
+                elif t.type == t.SellOption:
+                    one_sell = True
+                    self.assertIn(t.sub_type, ['SELLTOOPEN', 'SELLTOCLOSE'])
+
+        self.assertTrue(one_sell, "At least one option sale should be found")
+        self.assertTrue(one_buy, "At least one option buy should be found")
+
 
 
 
